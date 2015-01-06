@@ -3,6 +3,8 @@
 namespace duncan3dc\Sonos;
 
 use duncan3dc\DomParser\XmlParser;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * Provides an interface to individual speakers that is mostly read-only, although the volume can be set using this class.
@@ -49,15 +51,25 @@ class Speaker
      */
     protected $topology;
 
+    /**
+     * @var LoggerInterface $logger The logging object
+     */
+    protected $logger;
+
 
     /**
      * Create an instance of the Speaker class.
      *
      * @param string $ip The ip address that the speaker is listening on
      */
-    public function __construct($ip)
+    public function __construct($ip, LoggerInterface $logger = null)
     {
         $this->ip = $ip;
+
+        if ($logger === null) {
+            $logger = new NullLogger;
+        }
+        $this->logger = $logger;
 
         $parser = $this->getXml("/xml/device_description.xml");
         $device = $parser->getTag("device");
@@ -68,6 +80,7 @@ class Speaker
 
     /**
      * Retrieve some xml from the speaker.
+     *
      * _This method is intended for internal use only._
      *
      * @param string $url The url to retrieve
@@ -77,7 +90,13 @@ class Speaker
     public function getXml($url)
     {
         if (!isset($this->cache[$url])) {
-            $this->cache[$url] = new XmlParser("http://" . $this->ip . ":1400" . $url);
+            $uri = "http://" . $this->ip . ":1400" . $url;
+
+            $this->logger("requesting xml from: " . $uri);
+            $parser = new XmlParser($uri);
+
+            $this->debug("xml response:" . $parser->output());
+            $this->cache[$url] = $parser;
         }
 
         return $this->cache[$url];
@@ -86,6 +105,7 @@ class Speaker
 
     /**
      * Send a soap request to the speaker.
+     *
      * _This method is intended for internal use only_.
      *
      * @param string $service The service to send the request to
@@ -94,7 +114,7 @@ class Speaker
      *
      * @return mixed
      */
-    public function soap($service, $action, $params = [])
+    public function soap($service, $action, array $params = [])
     {
         switch ($service) {
             case "AVTransport";
@@ -134,7 +154,6 @@ class Speaker
 
     /**
      * Get the attributes needed for the classes instance variables.
-     * _This method is intended for internal use only_.
      *
      * @return void
      */
@@ -161,6 +180,7 @@ class Speaker
 
     /**
      * Set the instance variables based on the xml attributes.
+     *
      * _This method is intended for internal use only_.
      *
      * @param array $attributes The attributes from the xml that represent this speaker
