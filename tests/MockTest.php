@@ -19,9 +19,11 @@ class MockTest extends \PHPUnit_Framework_TestCase
         $parser->shouldReceive("getTag")->with("device")->once()->andReturn($device);
         $device->shouldReceive("getTag")->with("friendlyName")->once()->andReturn("Test Name");
         $device->shouldReceive("getTag")->with("roomName")->once()->andReturn("Test Room");
+        $device->shouldReceive("getTag")->with("modelNumber")->once()->andReturn("S3");
 
         $upnp = Mockery::mock("duncan3dc\Sonos\Device");
         $upnp->shouldReceive("getXml")->with("/xml/device_description.xml")->once()->andReturn($parser);
+        $upnp->shouldReceive("isSpeaker")->once()->andReturn(true);
         $upnp->shouldReceive("soap")->once()->andReturn(3);
 
         $speaker = new Speaker($upnp);
