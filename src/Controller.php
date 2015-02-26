@@ -135,14 +135,14 @@ class Controller extends Speaker
         $parser = new XmlParser($data["TrackMetaData"]);
         $state = State::createFromXml($parser, $this);
 
-        if ((string) $parser->getTag("streamContent")) {
+        if ((string)$parser->getTag("streamContent")) {
             $info = $this->soap("AVTransport", "GetMediaInfo");
-            if (!$state->stream = (string) (new XmlParser($info["CurrentURIMetaData"]))->getTag("title")) {
-                $state->stream = (string) $parser->getTag("title");
+            if (!$state->stream = (string)(new XmlParser($info["CurrentURIMetaData"]))->getTag("title")) {
+                $state->stream = (string)$parser->getTag("title");
             }
         }
 
-        $state->queueNumber = (int) $data["Track"];
+        $state->queueNumber = (int)$data["Track"];
         $state->duration = $data["TrackDuration"];
         $state->position = $data["RelTime"];
 
@@ -179,10 +179,30 @@ class Controller extends Speaker
     public function play()
     {
         return $this->soap("AVTransport", "Play", [
-            "Speed" =>  1,
+            "Speed" => 1,
         ]);
     }
 
+
+    /**
+     * @param $time relative time (hh:mm:ss) to seek to, or time in seconds
+     *
+     * @return void
+     */
+    public function seek($time)
+    {
+        // split to relative time if is passed in seconds
+        if (is_int($time)) {
+            $dtF = new \DateTime("@0");
+            $dtT = new \DateTime("@" . $time);
+            $time = $dtF->diff($dtT)->format('%h:%i:%s');
+        }
+
+        return $this->soap("AVTransport", "Seek", [
+            "Unit" => "REL_TIME",
+            "Target" => $time
+        ]);
+    }
 
     /**
      * Pause the group.
@@ -248,8 +268,8 @@ class Controller extends Speaker
             return;
         }
         $speaker->soap("AVTransport", "SetAVTransportURI", [
-            "CurrentURI"            =>  "x-rincon:" . $this->getUuid(),
-            "CurrentURIMetaData"    =>  "",
+            "CurrentURI" => "x-rincon:" . $this->getUuid(),
+            "CurrentURIMetaData" => "",
         ]);
 
         $this->network->clearTopology();
@@ -325,7 +345,7 @@ class Controller extends Speaker
     public function setMode(array $options)
     {
         $data = $this->soap("AVTransport", "SetPlayMode", [
-            "NewPlayMode"   =>  Helper::setMode($options),
+            "NewPlayMode" => Helper::setMode($options),
         ]);
     }
 
@@ -351,7 +371,7 @@ class Controller extends Speaker
      */
     public function setRepeat($repeat)
     {
-        $repeat = (boolean) $repeat;
+        $repeat = (boolean)$repeat;
 
         $mode = $this->getMode();
         if ($mode["repeat"] === $repeat) {
@@ -384,7 +404,7 @@ class Controller extends Speaker
      */
     public function setShuffle($shuffle)
     {
-        $shuffle = (boolean) $shuffle;
+        $shuffle = (boolean)$shuffle;
 
         $mode = $this->getMode();
         if ($mode["shuffle"] === $shuffle) {
@@ -403,7 +423,7 @@ class Controller extends Speaker
      */
     public function getCrossfade()
     {
-        return (boolean) $this->soap("AVTransport", "GetCrossfadeMode");
+        return (boolean)$this->soap("AVTransport", "GetCrossfadeMode");
     }
 
 
@@ -417,7 +437,7 @@ class Controller extends Speaker
     public function setCrossfade($crossfade)
     {
         $data = $this->soap("AVTransport", "SetCrossfadeMode", [
-            "CrossfadeMode" =>  (boolean) $crossfade,
+            "CrossfadeMode" => (boolean)$crossfade,
         ]);
     }
 
